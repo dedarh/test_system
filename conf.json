@@ -1,0 +1,6 @@
+{
+  "dbLogin": "root",
+  "dbHost":"localhost",
+  "dbDb":"test_systems",
+  "dbPort ":"26257"
+}
