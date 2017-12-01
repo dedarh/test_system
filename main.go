@@ -2,23 +2,21 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"flag"
-	"io/ioutil"
 )
 
-
 var config struct {
-	DbLogin      string `json:"dbLogin"`
-	DbHost       string `json:"dbHost"`
-	DbDb         string `json:"dbDb"`
+	DbLogin string `json:"dbLogin"`
+	DbHost  string `json:"dbHost"`
+	DbDb    string `json:"dbDb"`
 }
-
 
 type User struct {
 	Id       int    `db:"id_user"`
@@ -33,21 +31,22 @@ type Test struct {
 	Id   int    `db:"i_test"`
 	Name string `db:"name"`
 }
-type Test_question struct {
-	Id_Question string `db:"i_question"`
-	Text        string `db:"question_name"`
-	Type        string `db:"type"`
-	Answer      []Test_question_answer
+type TestQuestion struct {
+	IdQuestion string `db:"i_question"`
+	Text       string `db:"question_name"`
+	Type       string `db:"type"`
+	Answer     []TestQuestionAnswer
 }
-type Test_question_answer struct {
-	Id_Question int    `db:"i_question"`
-	ID_Answer   int    `db:"i_answer"`
-	Text        string `db:"text"`
+type TestQuestionAnswer struct {
+	IdQuestion int    `db:"i_question"`
+	IDAnswer   int    `db:"i_answer"`
+	Text       string `db:"text"`
 }
 
-var db *sqlx.DB
-var configFile  = flag.String("config", "conf.json", "Where to read the config from")
-
+var (
+	db *sqlx.DB
+	configFile = flag.String("config", "conf.json", "Where to read the config from")
+)
 
 func loadConfig() error {
 	jsonData, err := ioutil.ReadFile(*configFile)
@@ -62,18 +61,14 @@ func init() {
 		log.Fatal(err)
 	}
 	log.Println("Config loaded from", *configFile)
-		var id int
-		var dbconnect =	"postgresql://"+config.DbLogin+"@"+config.DbHost+":26257/"+config.DbDb+"?sslmode=disable"
 
-		db =	sqlx.MustConnect("postgres", dbconnect)
+	db = sqlx.MustConnect("postgres", "postgresql://" + config.DbLogin + "@" + config.DbHost + ":26257/" + config.DbDb + "?sslmode=disable")
 
-	// 	db =	sqlx.MustConnect("postgres", "postgresql://root@localhost:26257/test_systems?sslmode=disable") //govnocode
-
+	var id int
 	if err := db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
 	}
-	log.Print("количество пользователей", id)
-	//fmt.Printf("%#v\n%#v","количество пользователей", id)
+	log.Println("Users count:", id)
 }
 
 func usersIndex(w http.ResponseWriter, r *http.Request) {
@@ -90,12 +85,12 @@ func usersIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, u := range users {
-		answer_user, err := json.Marshal(u) //govnocode
+		answerUser, err := json.Marshal(u)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		fmt.Fprintf(w, string(answer_user))
+		fmt.Fprintf(w, string(answerUser))
 	}
 }
 
@@ -112,12 +107,12 @@ func usersShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer_user, err := json.Marshal(user[0]) //govnocode
+	answerUser, err := json.Marshal(user[0])
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answer_user))
+	fmt.Fprintf(w, string(answerUser))
 }
 
 func testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
@@ -128,18 +123,17 @@ func testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
 
 	var test []Test
 
-
 	if err := db.Select(&test, "SELECT * FROM test_name  ORDER BY name ASC"); err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	answer_test, err:= json.Marshal(test)  //govnocode
+	answerTest, err := json.Marshal(test)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answer_test))
+	fmt.Fprintf(w, string(answerTest))
 }
 
 func testStart(w http.ResponseWriter, r *http.Request) { //все тесты шаблон
@@ -148,9 +142,11 @@ func testStart(w http.ResponseWriter, r *http.Request) { //все тесты ш�
 		return
 	}
 
+	r.ParseForm()
+
 	id := r.FormValue("id") //id теста
 
-	var testQuestion []Test_question
+	var testQuestion []TestQuestion
 	err := db.Select(&testQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
@@ -159,24 +155,18 @@ func testStart(w http.ResponseWriter, r *http.Request) { //все тесты ш�
 	}
 
 	for i := 1; i < len(testQuestion); i++ {
-		var tqa []Test_question_answer
-		db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1",testQuestion[i].Id_Question)
+		var tqa []TestQuestionAnswer
+		db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", testQuestion[i].IdQuestion)
 		testQuestion[i].Answer = tqa
 	}
 
-
-
-
-
-
-
 	fmt.Println(testQuestion)
-	answer_test, err := json.Marshal(testQuestion)  //govnocode
+	answerTest, err := json.Marshal(testQuestion) //govnocode
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answer_test))
+	fmt.Fprintf(w, string(answerTest))
 }
 
 func nextQuestion(w http.ResponseWriter, r *http.Request) { //все тесты шаблон
@@ -185,22 +175,21 @@ func nextQuestion(w http.ResponseWriter, r *http.Request) { //все тесты 
 		return
 	}
 
-	var question_answer []Test_question_answer
+	var questionAnswer []TestQuestionAnswer
 
-
-	if err := db.Select(&question_answer, `SELECT i_question, i_answer, text FROM answer WHERE i_question = $1`, r.FormValue("Id_Question")); err != nil {
+	if err := db.Select(&questionAnswer, `SELECT i_question, i_answer, text FROM answer WHERE i_question = $1`, r.FormValue("Id_Question")); err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(question_answer)
-	answer_test, err := json.Marshal(question_answer)
+	fmt.Println(questionAnswer)
+	answerTest, err := json.Marshal(questionAnswer)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answer_test))
+	fmt.Fprintf(w, string(answerTest))
 }
 
 func main() {
