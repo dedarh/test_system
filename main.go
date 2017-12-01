@@ -31,12 +31,14 @@ type Test struct {
 	Id   int    `db:"i_test"`
 	Name string `db:"name"`
 }
+
 type TestQuestion struct {
 	IdQuestion string `db:"i_question"`
 	Text       string `db:"question_name"`
 	Type       string `db:"type"`
 	Answer     []TestQuestionAnswer
 }
+
 type TestQuestionAnswer struct {
 	IdQuestion int    `db:"i_question"`
 	IDAnswer   int    `db:"i_answer"`
@@ -44,7 +46,7 @@ type TestQuestionAnswer struct {
 }
 
 var (
-	db *sqlx.DB
+	db         *sqlx.DB
 	configFile = flag.String("config", "conf.json", "Where to read the config from")
 )
 
@@ -62,7 +64,7 @@ func init() {
 	}
 	log.Println("Config loaded from", *configFile)
 
-	db = sqlx.MustConnect("postgres", "postgresql://" + config.DbLogin + "@" + config.DbHost + ":26257/" + config.DbDb + "?sslmode=disable")
+	db = sqlx.MustConnect("postgres", "postgresql://"+config.DbLogin+"@"+config.DbHost+":26257/"+config.DbDb+"?sslmode=disable")
 
 	var id int
 	if err := db.Get(&id, "SELECT count(*) FROM users"); err != nil {
