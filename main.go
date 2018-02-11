@@ -2,21 +2,23 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"flag"
+	"io/ioutil"
 )
 
+
 var config struct {
-	DbLogin string `json:"dbLogin"`
-	DbHost  string `json:"dbHost"`
-	DbDb    string `json:"dbDb"`
+	DbLogin      string `json:"dbLogin"`
+	DbHost       string `json:"dbHost"`
+	DbDb         string `json:"dbDb"`
 }
+
 
 type User struct {
 	Id       int    `db:"id_user"`
@@ -31,24 +33,22 @@ type Test struct {
 	Id   int    `db:"i_test"`
 	Name string `db:"name"`
 }
-
-type TestQuestion struct {
-	IdQuestion string `db:"i_question"`
-	Text       string `db:"question_name"`
-	Type       string `db:"type"`
-	Answer     []TestQuestionAnswer
+type Test_question struct {
+	Id_Question string `db:"i_question"`
+	Text        string `db:"question_name"`
+	Type        string `db:"type"`
+	Answer      []Test_question_answer
+}
+type Test_question_answer struct {
+	Id_Question int    `db:"i_question"`
+	ID_Answer   int    `db:"i_answer"`
+	Text        string `db:"text"`
+	Correct  int `db:"status"`
 }
 
-type TestQuestionAnswer struct {
-	IdQuestion int    `db:"i_question"`
-	IDAnswer   int    `db:"i_answer"`
-	Text       string `db:"text"`
-}
+var db *sqlx.DB
+var configFile  = flag.String("config", "conf.json", "Where to read the config from")
 
-var (
-	db         *sqlx.DB
-	configFile = flag.String("config", "conf.json", "Where to read the config from")
-)
 
 func loadConfig() error {
 	jsonData, err := ioutil.ReadFile(*configFile)
@@ -63,17 +63,21 @@ func init() {
 		log.Fatal(err)
 	}
 	log.Println("Config loaded from", *configFile)
+		var id int
+		var dbconnect =	"postgresql://"+config.DbLogin+"@"+config.DbHost+":26257/"+config.DbDb+"?sslmode=disable"
 
-	db = sqlx.MustConnect("postgres", "postgresql://"+config.DbLogin+"@"+config.DbHost+":26257/"+config.DbDb+"?sslmode=disable")
+		db =	sqlx.MustConnect("postgres", dbconnect)
 
-	var id int
+	// 	db =	sqlx.MustConnect("postgres", "postgresql://root@localhost:26257/test_systems?sslmode=disable") //govnocode
+
 	if err := db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
 	}
-	log.Println("Users count:", id)
+	log.Print("количество пользователей", id)
+	//fmt.Printf("%#v\n%#v","количество пользователей", id)
 }
 
-func usersIndex(w http.ResponseWriter, r *http.Request) {
+func usersIndex(w http.ResponseWriter, r *http.Request) { //игформация о пользователе
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
@@ -87,16 +91,16 @@ func usersIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, u := range users {
-		answerUser, err := json.Marshal(u)
+		answer_user, err := json.Marshal(u) //govnocode
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		fmt.Fprintf(w, string(answerUser))
+		fmt.Fprintf(w, string(answer_user))
 	}
 }
 
-func usersShow(w http.ResponseWriter, r *http.Request) {
+func usersShow(w http.ResponseWriter, r *http.Request) { //игформация об определенном пользователе
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
@@ -109,12 +113,12 @@ func usersShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answerUser, err := json.Marshal(user[0])
+	answer_user, err := json.Marshal(user[0]) //govnocode
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answerUser))
+	fmt.Fprintf(w, string(answer_user))
 }
 
 func testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
@@ -125,30 +129,29 @@ func testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
 
 	var test []Test
 
+
 	if err := db.Select(&test, "SELECT * FROM test_name  ORDER BY name ASC"); err != nil {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 
-	answerTest, err := json.Marshal(test)
+	answer_test, err:= json.Marshal(test)  //govnocode
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answerTest))
+	fmt.Fprintf(w, string(answer_test))
 }
 
-func testStart(w http.ResponseWriter, r *http.Request) { //все тесты шаблон
+func testStart(w http.ResponseWriter, r *http.Request) { //создание теста и отправка его пользователю
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
-	r.ParseForm()
-
 	id := r.FormValue("id") //id теста
 
-	var testQuestion []TestQuestion
+	var testQuestion []Test_question
 	err := db.Select(&testQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
 	if err != nil {
 		http.Error(w, http.StatusText(500), 500)
@@ -157,48 +160,67 @@ func testStart(w http.ResponseWriter, r *http.Request) { //все тесты ш�
 	}
 
 	for i := 1; i < len(testQuestion); i++ {
-		var tqa []TestQuestionAnswer
-		db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", testQuestion[i].IdQuestion)
+		var tqa []Test_question_answer
+		db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1",testQuestion[i].Id_Question)
 		testQuestion[i].Answer = tqa
 	}
-
+	
 	fmt.Println(testQuestion)
-	answerTest, err := json.Marshal(testQuestion) //govnocode
+	answer_test, err := json.Marshal(testQuestion)  //govnocode
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answerTest))
+	fmt.Fprintf(w, string(answer_test))
 }
 
-func nextQuestion(w http.ResponseWriter, r *http.Request) { //все тесты шаблон
+func test_check_qestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
-	var questionAnswer []TestQuestionAnswer
+	var question_answer_correct []Test_question_answer
 
-	if err := db.Select(&questionAnswer, `SELECT i_question, i_answer, text FROM answer WHERE i_question = $1`, r.FormValue("Id_Question")); err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		fmt.Println(err)
-		return
-	}
 
-	fmt.Println(questionAnswer)
-	answerTest, err := json.Marshal(questionAnswer)
+
+	var Answer_user_json []Test_question_answer
+	user_answer := []byte(r.FormValue("Answer_user"))
+
+	err := json.Unmarshal(user_answer, &Answer_user_json)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answerTest))
-}
+	for i := 0; i < len(Answer_user_json); i++ {
+		if err := db.Select(&question_answer_correct, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, Answer_user_json[i].Id_Question, Answer_user_json[i].ID_Answer) ; err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			fmt.Println(err)
+			return
+		}
+		if(question_answer_correct[i].Correct == 1){
+			log.Println("верный овтет")
+		}else{
+			log.Println("не верный овтет")
+		}
 
-func main() {
-	http.HandleFunc("/users/", usersIndex)
-	http.HandleFunc("/users/show/", usersShow)
-	http.HandleFunc("/get_test/", testIndex)
-	http.HandleFunc("/testStart/", testStart)
-	http.HandleFunc("/next/", nextQuestion)
-	http.ListenAndServe(":4080", nil)
-}
+
+	}
+
+	answer_usr_test, err := json.Marshal(Answer_user_json)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+			fmt.Fprintf(w, string(answer_usr_test))
+		}
+
+		func main() {
+			http.HandleFunc("/users/", usersIndex)
+			http.HandleFunc("/users/show/", usersShow)
+			http.HandleFunc("/get_test/", testIndex)
+			http.HandleFunc("/testStart/", testStart)
+			http.HandleFunc("/test_check_qestion/", test_check_qestion)
+			http.ListenAndServe(":4080", nil)
+		}
