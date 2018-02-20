@@ -164,7 +164,13 @@ func testStart(w http.ResponseWriter, r *http.Request) { //создание те
 		db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1",testQuestion[i].Id_Question)
 		testQuestion[i].Answer = tqa
 	}
-	
+
+
+
+
+
+
+
 	fmt.Println(testQuestion)
 	answer_test, err := json.Marshal(testQuestion)  //govnocode
 	if err != nil {
@@ -174,12 +180,13 @@ func testStart(w http.ResponseWriter, r *http.Request) { //создание те
 	fmt.Fprintf(w, string(answer_test))
 }
 
-func test_check_qestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос
+func test_check_qestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
-
+	var countCorrect = 0;
+	var countWrong = 0;
 	var question_answer_correct []Test_question_answer
 
 
@@ -199,13 +206,28 @@ func test_check_qestion(w http.ResponseWriter, r *http.Request) { //провер
 			return
 		}
 		if(question_answer_correct[i].Correct == 1){
-			log.Println("верный овтет")
+			//log.Println("верный овтет")
+			countCorrect++
 		}else{
-			log.Println("не верный овтет")
+			//log.Println("не верный овтет")
+			countWrong++
 		}
-
-
 	}
+	log.Println("Верных ответов: ", countCorrect)
+	log.Println("Неверных ответов: ", countWrong)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	answer_usr_test, err := json.Marshal(Answer_user_json)
 	if err != nil {
