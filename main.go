@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -31,12 +32,14 @@ type Test struct {
 	Id   int    `db:"i_test"`
 	Name string `db:"name"`
 }
+
 type TestQuestion struct {
 	IdQuestion string `db:"i_question"`
 	Text       string `db:"question_name"`
 	Type       string `db:"type"`
 	Answer     []TestQuestionAnswer
 }
+
 type TestQuestionAnswer struct {
 	IdQuestion int    `db:"i_question"`
 	IdAnswer   int    `db:"i_answer"`
@@ -55,26 +58,7 @@ func loadConfig() error {
 	return json.Unmarshal(jsonData, &config)
 }
 
-func init() {
-	if err := loadConfig(); err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Config loaded from", *configFile)
-	var id int
-	var dbconnect = "postgresql://" + config.DbLogin + "@" + config.DbHost + ":26257/" + config.DbDb + "?sslmode=disable"
-
-	db = sqlx.MustConnect("postgres", dbconnect)
-
-	// 	db =	sqlx.MustConnect("postgres", "postgresql://root@localhost:26257/test_systems?sslmode=disable") //govnocode
-
-	if err := db.Get(&id, "SELECT count(*) FROM users"); err != nil {
-		log.Fatal(err)
-	}
-	log.Print("количество пользователей", id)
-	//fmt.Printf("%#v\n%#v","количество пользователей", id)
-}
-
-func usersIndex(w http.ResponseWriter, r *http.Request) { //игформация о пользователе
+func usersIndex(w http.ResponseWriter, r *http.Request) { //информация о пользователе
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
@@ -83,12 +67,12 @@ func usersIndex(w http.ResponseWriter, r *http.Request) { //игформация
 	var users []User
 
 	if err := db.Select(&users, "SELECT * FROM users ORDER BY Name ASC"); err != nil {
-		http.Error(w, http.StatusText(500), 500)
+		log.Println(err)
 		return
 	}
 
-	for _, u := range users {
-		answerUser, err := json.Marshal(u) //govnocode
+	for _, user := range users {
+		answerUser, err := json.Marshal(user)
 		if err != nil {
 			log.Println(err)
 			return
@@ -97,20 +81,24 @@ func usersIndex(w http.ResponseWriter, r *http.Request) { //игформация
 	}
 }
 
-func usersShow(w http.ResponseWriter, r *http.Request) { //игформация об определенном пользователе
+func usersShow(w http.ResponseWriter, r *http.Request) { //информация об определенном пользователе
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
 
-	var user []User
+	var user User
 
-	if err := db.Select(&user, "SELECT * FROM users WHERE id_user  = $1", r.FormValue("id")); err != nil {
-		http.NotFound(w, r)
+	if err := db.Get(&user, "SELECT * FROM users WHERE id_user  = $1", r.FormValue("id")); err != nil {
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+		} else {
+			log.Println(err)
+		}
 		return
 	}
 
-	answerUser, err := json.Marshal(user[0]) //govnocode
+	answerUser, err := json.Marshal(user)
 	if err != nil {
 		log.Println(err)
 		return
@@ -118,7 +106,7 @@ func usersShow(w http.ResponseWriter, r *http.Request) { //игформация 
 	fmt.Fprintf(w, string(answerUser))
 }
 
-func testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
+func testIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
@@ -127,11 +115,11 @@ func testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
 	var test []Test
 
 	if err := db.Select(&test, "SELECT * FROM test_name  ORDER BY name ASC"); err != nil {
-		http.Error(w, http.StatusText(500), 500)
+		log.Println(err)
 		return
 	}
 
-	answerTest, err := json.Marshal(test) //govnocode
+	answerTest, err := json.Marshal(test)
 	if err != nil {
 		log.Println(err)
 		return
@@ -145,7 +133,7 @@ func testStart(w http.ResponseWriter, r *http.Request) { //создание те
 		return
 	}
 
-	id := r.FormValue("id") //id теста
+	id := r.FormValue("id")
 
 	var testQuestion []TestQuestion
 	err := db.Select(&testQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
@@ -155,14 +143,15 @@ func testStart(w http.ResponseWriter, r *http.Request) { //создание те
 		return
 	}
 
-	for i := 1; i < len(testQuestion); i++ {
-		var tqa []TestQuestionAnswer
-		db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", testQuestion[i].IdQuestion)
-		testQuestion[i].Answer = tqa
+	for i := 0; i < len(testQuestion); i++ {
+		err := db.Select(&testQuestion[i].Answer, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", testQuestion[i].IdQuestion)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 	}
 
-	fmt.Println(testQuestion)
-	answerTest, err := json.Marshal(testQuestion) //govnocode
+	answerTest, err := json.Marshal(testQuestion)
 	if err != nil {
 		log.Println(err)
 		return
@@ -214,6 +203,13 @@ func testCheckQuestion(w http.ResponseWriter, r *http.Request) { //провер�
 }
 
 func main() {
+	if err := loadConfig(); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Config loaded from", *configFile)
+	db = sqlx.MustConnect("postgres", "postgresql://" + config.DbLogin + "@" + config.DbHost + ":26257/" + config.DbDb + "?sslmode=disable")
+	log.Println("Connected to db on", config.DbHost)
+
 	http.HandleFunc("/users/", usersIndex)
 	http.HandleFunc("/users/show/", usersShow)
 	http.HandleFunc("/get_test/", testIndex)
