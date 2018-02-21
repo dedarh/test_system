@@ -219,6 +219,6 @@ func main() {
 	http.HandleFunc("/users/show/", usersShow)
 	http.HandleFunc("/get_test/", testIndex)
 	http.HandleFunc("/testStart/", testStart)
-	http.HandleFunc("/test_check_qestion/", testCheckQuestion)
+	http.HandleFunc("/test_check_question/", testCheckQuestion)
 	http.ListenAndServe(":4080", nil)
 }
