@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
-
-	"flag"
-	"io/ioutil"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
