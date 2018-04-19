@@ -1,0 +1,65 @@
+{% func TestsPage() %}
+{%= Head("Список тестов") %}
+    <div class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse"
+                        data-target=".navbar-responsive-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">Testing system</a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="/tests/"> </a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/logout/">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div style="width: 80%; margin: 0 auto;min-width: 1320px">
+        <table class="table table-striped table-hover">
+            <thead>
+            <tr>
+                <th>Id Tests</th>
+                <th>Name Test</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr class="info">
+                <td style="padding: 20px;">Id test</td>
+                <td style="padding: 20px;">Name test</td>
+                <td>
+                    <a href="/admin/checkMemorandum/accept/" class="btn btn-success btn-on-table"><span class="glyphicon glyphicon-play" aria-hidden="true"></span></a>
+                </td>
+            </tr>
+            <tr class="danger">
+                <td style="padding: 20px;">Failed test</td>
+                <td style="padding: 20px;">Descriptions test</td>
+                <td>
+                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
+                </td>
+            </tr>
+            <tr class="success">
+                <td style="padding: 20px;">Completed test</td>
+                <td style="padding: 20px;">Descriptions test</td>
+                <td>
+                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+<div id="black-block"></div>
+<script>
+$(document).ready(function(){
+     App.systems.get_test();
+  });
+
+</script>
+{%= Footer() %}
+{% endfunc %}
