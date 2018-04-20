@@ -1,0 +1,46 @@
+{% func TestsPageView(idtest string) %}
+{%= Head("Tест начат") %}
+<div class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse"
+                        data-target=".navbar-responsive-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">Testing system</a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="/tests/">Tests</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/admin/logout/">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+		
+		
+	<div id ="questblock" style="\width: 80%; margin: 0 auto;min-width: 1320px\"> </div>
+<button id="Finish" class="btn btn-primary left">Завершить тест<div class="ripple-container"></div></button>
+		
+		
+		
+<script>
+    $(document).ready(function(){
+        App.var.id_test= {%s  idtest %};
+	    App.systems.load_question();		
+	    $("body").append($("<div id = \"questblock\"></div>"));		
+		$('#Finish').click(function(e) {        
+			App.systems.next_question();
+		});
+
+		
+
+		
+      });
+</script>
+{%= Footer() %}
+{% endfunc %}

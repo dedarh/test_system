@@ -12,6 +12,10 @@ import (
 	"io/ioutil"
 	"./templates"
 
+	"os"
+
+	"text/template"
+	"os/exec"
 )
 
 type server struct {
@@ -28,13 +32,24 @@ var config struct {
 	DbLogin      string `json:"dbLogin"`
 	DbHost       string `json:"dbHost"`
 	DbDb         string `json:"dbDb"`
+	PathToConfVm  string `json:"PathToConfVm"`
 }
 
 
-type User_return struct {
-	Lastname  string
-	Firstname string
+type answer_return struct {
+	CountCorrect  int
+	CountWrong int
 }
+
+type VmVariables struct {
+	Password string
+	Box      string
+	Hostname string
+	Memory   string
+	Login    string
+	Port    int
+}
+
 type User struct {
 	Id       int    `db:"id_user"`
 	Login    string `db:"login"`
@@ -75,6 +90,70 @@ func loadConfig() error {
 	}
 	return json.Unmarshal(jsonData, &config)
 }
+
+func (s *server) getUserFromDbByLogin(login string) (User, error) {
+	var users User
+	var query = "SELECT * FROM users WHERE users.login='"+login+"'";
+	err := s.Db.Get(&users, query)
+	return users, err
+}
+
+
+
+
+func (s *server) makeVagrantConf(login string) error {
+	usr, err := s.getUserFromDbByLogin(login)
+	if err != nil {
+		return err
+	}
+	log.Print("юзер")
+	log.Print(usr)
+	generatedVm := VmVariables{Box: "ubuntu/xenial64", Hostname: "testvm" + login +"", Memory: "2048", Port: usr.Id }
+	templates, err := template.ParseFiles("VagrantConfSample.txt")
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/"); os.IsNotExist(err) {
+		os.Mkdir(config.PathToConfVm+string(usr.Login)+"/", 0777)
+		os.Mkdir(config.PathToConfVm+string(usr.Login)+"/"+usr.Login+"/", 0777)
+	}
+	file, err := os.Create(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile")
+	log.Println(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile")
+	defer file.Close()
+	templates.ExecuteTemplate(file, "VagrantConfSample.txt", generatedVm)
+
+	s.makeBat(login)
+	return err
+}
+
+func (s *server) makeBat(login string) error {
+	usr, err := s.getUserFromDbByLogin(login)
+	text := "vagrant up"
+	file, err := os.Create(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile.bat")
+	file.WriteString(text)
+	defer file.Close()
+	return err
+}
+
+
+func (s *server) executeVagrant(path string) error {
+	log.Println(path)
+	vagrant := exec.Command(path+"Vagrantfile.bat")
+	vagrant.Dir = path
+	err := vagrant.Run()
+	return err
+}
+
+func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request){
+	err := s.makeVagrantConf("dedarh")
+	var abc = "dedarh"
+	s.executeVagrant(config.PathToConfVm + abc + "/" + abc + "/")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+}
+
 
 func  (s *server) usersIndex(w http.ResponseWriter, r *http.Request) { //игформация о пользователе
 	if r.Method != "GET" {
@@ -144,40 +223,36 @@ func (s *server) testIndex(w http.ResponseWriter, r *http.Request) { //все т
 }
 
 func (s *server) testStart(w http.ResponseWriter, r *http.Request) { //создание теста и отправка его пользователю
-	if r.Method != "GET" {
-		http.Error(w, http.StatusText(405), 405)
-		return
+	if r.Method == "GET" {
+		id := r.FormValue("id")
+		fmt.Fprint(w, templates.TestsPageView(id))
 	}
 
-	id := r.FormValue("id") //id теста
+	if r.Method == "POST" {
+		id := r.FormValue("id") //id теста
 
-	var testQuestion []Test_question
-	err := s.Db.Select(&testQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
-	if err != nil {
-		http.Error(w, http.StatusText(500), 500)
-		fmt.Println(err)
-		return
+		var testQuestion []Test_question
+		err := s.Db.Select(&testQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
+		if err != nil {
+			http.Error(w, http.StatusText(500), 500)
+			fmt.Println(err)
+			return
+		}
+
+		for i := 1; i < len(testQuestion); i++ {
+			var tqa []Test_question_answer
+			s.Db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1",testQuestion[i].Id_Question)
+			testQuestion[i].Answer = tqa
+		}
+		fmt.Println(testQuestion)
+		answer_test, err := json.Marshal(testQuestion)  //govnocode
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		fmt.Fprintf(w, string(answer_test))
 	}
 
-	for i := 1; i < len(testQuestion); i++ {
-		var tqa []Test_question_answer
-		s.Db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1",testQuestion[i].Id_Question)
-		testQuestion[i].Answer = tqa
-	}
-
-
-
-
-
-
-
-	fmt.Println(testQuestion)
-	answer_test, err := json.Marshal(testQuestion)  //govnocode
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	fmt.Fprintf(w, string(answer_test))
 }
 
 func (s *server) test_check_qestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
@@ -215,14 +290,18 @@ func (s *server) test_check_qestion(w http.ResponseWriter, r *http.Request) { //
 	}
 	log.Println("Верных ответов: ", countCorrect)
 	log.Println("Неверных ответов: ", countWrong)
+	var return_obj = map[string]int{"countCorrect": countCorrect, "countWrong": countWrong}
+	mapVar2, _ := json.Marshal(return_obj)
 
-	answer_usr_test, err := json.Marshal(Answer_user_json)
+
+
+/*	answer_usr_test, err := json.Marshal(Answer_user_json)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-			fmt.Fprintf(w, string(answer_usr_test))
+*/
+			fmt.Fprintf(w, string(mapVar2))
 		}
 
 
@@ -325,6 +404,8 @@ func (s *server)  logout(w http.ResponseWriter, r *http.Request) {
 
 			http.HandleFunc("/logout/", s.logout)
 			http.HandleFunc("/login/", s.login)
+
+			http.HandleFunc("/start_vds/", s.CreatedVds)
 			http.HandleFunc("/", s.secret_test)
 			http.ListenAndServe(":4080", nil)
 		}
