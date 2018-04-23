@@ -13,7 +13,7 @@ import (
 	"./templates"
 	"os"
 	"text/template"
-	"os/exec"
+	"os/exec"		
 )
 
 type server struct {
@@ -90,7 +90,7 @@ func loadConfig() error {
 func (s *server) getUserFromDbByLogin(login string) (User, error) {
 	var users User
 	var query = "SELECT * FROM users WHERE users.login='" + login + "'";
-	err := s.Db.Select(&users, query)
+	err := s.Db.Get(&users, query)
 	return users, err
 }
 
@@ -137,11 +137,18 @@ func (s *server) executeVagrant(path string) error {
 }
 
 func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request) {
-	err := s.makeVagrantConf("dedarh")
-	var abc = "dedarh"
-	s.executeVagrant(config.PathToConfVm + abc + "/" + abc + "/")
+	var login = r.FormValue("user")
+	log.Println()
+	err := s.makeVagrantConf(login)
+	s.executeVagrant(config.PathToConfVm + login + "/" + login + "/")
 	if err != nil {
 		log.Println(err)
+		return
+	}
+	var query = "INSERT INTO suggestions (id, login, state, status) VALUES ((SELECT ifnull(max(id), 0)+1 FROM suggestions),'" + login + "', 0,0)";
+	if _, err := s.Db.Exec(query); err != nil {
+		log.Print("Ошибка добавление в базу")
+		http.Error(w, http.StatusText(500), 500)
 		return
 	}
 }
@@ -326,6 +333,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 			http.NotFound(w, r)
 			return
 		}
+
 		session.Values["authenticated"] = true
 		session.Values["names"] = user[0].Firstname
 		session.Values["lastname"] = user[0].Lastname
@@ -356,7 +364,7 @@ func main() {
 	s := server{Db: sqlx.MustConnect("postgres", dbconnect),}
 	defer s.Db.Close()
 
-	if err := s.Db.Select(&id, "SELECT count(*) FROM users"); err != nil {
+	if err := s.Db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
 	}
 	log.Print("количество пользователей", id)
