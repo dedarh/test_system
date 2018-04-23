@@ -270,10 +270,14 @@ func (s *server) test_check_qestion_whith(w http.ResponseWriter, r *http.Request
 		return
 	}
 	var id_user = strconv.Itoa(session.Values["id"].(int))
+	var id_file = ""
+	if err := s.Db.Get(&id_file, "SELECT ifnull(max(id)+1, 0) FROM user_answer"); err != nil {
+		log.Fatal(err)
+	}
 
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/", 0777)
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
-	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_with.json")
+	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_"+id_file+"_with.json")
 	file.Write(user_answer)
 	file.Close()
 }
@@ -323,9 +327,14 @@ func (s *server) test_check_qestion(w http.ResponseWriter, r *http.Request) { //
 		return
 	}
 
+	var id_file = ""
+	if err := s.Db.Get(&id_file, "SELECT ifnull(max(id), 0) FROM user_answer"); err != nil {
+		log.Fatal(err)
+	}
+
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/", 0777)
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
-	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_without.json")
+	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_"+id_file+"_without.json")
 
 	file.Write(user_answer)
 	file.Close()
