@@ -13,7 +13,8 @@ import (
 	"./templates"
 	"os"
 	"text/template"
-	"os/exec"		
+	"os/exec"
+	"strconv"
 )
 
 type server struct {
@@ -26,10 +27,11 @@ type Path struct {
 }
 
 var config struct {
-	DbLogin      string `json:"dbLogin"`
-	DbHost       string `json:"dbHost"`
-	DbDb         string `json:"dbDb"`
-	PathToConfVm string `json:"PathToConfVm"`
+	DbLogin        string `json:"dbLogin"`
+	DbHost         string `json:"dbHost"`
+	DbDb           string `json:"dbDb"`
+	PathToConfVm   string `json:"PathToConfVm"`
+	PathTestResult string `json:"PathTestResult"`
 }
 
 type answer_return struct {
@@ -252,11 +254,36 @@ func (s *server) testStart(w http.ResponseWriter, r *http.Request) { //созд�
 
 }
 
+func (s *server) test_check_qestion_whith(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
+	if r.Method != "GET" {
+		http.Error(w, http.StatusText(405), 405)
+		return
+	}
+	session, _ := store.Get(r, "cookie-name")
+
+	var Answer_user_json []Test_question_answer
+	user_answer := []byte(r.FormValue("Answer_user"))
+
+	err := json.Unmarshal(user_answer, &Answer_user_json)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	var id_user = strconv.Itoa(session.Values["id"].(int))
+
+	os.Mkdir(config.PathTestResult+"user_"+id_user+"/", 0777)
+	os.Mkdir(config.PathTestResult+"user_"+id_user+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
+	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_with.json")
+	file.Write(user_answer)
+	file.Close()
+}
+
 func (s *server) test_check_qestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
+	session, _ := store.Get(r, "cookie-name")
 	var countCorrect = 0;
 	var countWrong = 0;
 	var question_answer_correct []Test_question_answer
@@ -288,12 +315,20 @@ func (s *server) test_check_qestion(w http.ResponseWriter, r *http.Request) { //
 	var return_obj = map[string]int{"countCorrect": countCorrect, "countWrong": countWrong}
 	mapVar2, _ := json.Marshal(return_obj)
 
-	/*	answer_usr_test, err := json.Marshal(Answer_user_json)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-	*/
+	var id_user = strconv.Itoa(session.Values["id"].(int))
+	var query = "INSERT INTO user_answer (id, id_user, id_test, answer_temp) VALUES ((SELECT ifnull(max(id), 0)+1 FROM user_answer), '" + id_user + "' , '" + r.FormValue("Id_Test") + "','" + string(mapVar2) + "')";
+	if _, err := s.Db.Exec(query); err != nil {
+		log.Print("Ошибка добавление в базу")
+		http.Error(w, http.StatusText(500), 500)
+		return
+	}
+
+	os.Mkdir(config.PathTestResult+"user_"+id_user+"/", 0777)
+	os.Mkdir(config.PathTestResult+"user_"+id_user+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
+	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_without.json")
+
+	file.Write(user_answer)
+	file.Close()
 	fmt.Fprintf(w, string(mapVar2))
 }
 
@@ -335,6 +370,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 		}
 
 		session.Values["authenticated"] = true
+		session.Values["id"] = user[0].Id
 		session.Values["names"] = user[0].Firstname
 		session.Values["lastname"] = user[0].Lastname
 		session.Values["admin"] = user[0].Permission
@@ -377,6 +413,7 @@ func main() {
 	http.HandleFunc("/get_test/", s.testIndex)
 	http.HandleFunc("/testStart/", s.testStart)
 	http.HandleFunc("/test_check_qestion/", s.test_check_qestion)
+	http.HandleFunc("/test_check_qestion_whith/", s.test_check_qestion_whith)
 
 	http.HandleFunc("/logout/", s.logout)
 	http.HandleFunc("/login/", s.login)
