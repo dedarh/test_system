@@ -63,9 +63,9 @@ var App = {
 
 for(var i=0; i<question.length; i++){
     if(question[i].Answer == null ){
-        html+='<div id_q="'+question[i].Id_Question+'"class="panel panel-info"><div class="panel-heading"><h3 class="panel-title">';
+        html+='<div class="panel panel-info"><div class="panel-heading"><h3 class="panel-title">';
         html+=question[i].Text;
-        html+='</h3></div> <div class="panel-body"><form class="form-horizontal form-cont"><fieldset><div class="form-group is-empty"><label for="inputLogin" class="col-md-2 control-label">Ansver</label> <div class="col-md-10"><input type="login" name="login" class="form-control" id="inputLogin"></div></div></fieldset></form></div></div>';
+        html+='</h3></div> <div class="panel-body"><form class="form-horizontal form-cont"><fieldset><div class="form-group is-empty"><label for="inputLogin" class="col-md-2 control-label">Ansver</label> <div class="col-md-10"><input id_q="'+question[i].Id_Question+' "type="login" name="login" class="form-control" id="inputLogin"></div></div></fieldset></form></div></div>';
     }
     if(question[i].Type == "2" && question[i].Answer != null){
         html+= '<div id_q="'+question[i].Id_Question+'"class="panel panel-info"> <div class="panel-heading"><h3 class="panel-title">';
@@ -105,6 +105,7 @@ for(var i=0; i<question.length; i++){
 
         next_question: function() {
         var user_ansver =[];
+        var user_ansver_with =[];
             var temp1 = $(".panel.panel-info :checked");
             console.log(temp1);
             for(var i =0; i < temp1.length; i++){
@@ -115,16 +116,18 @@ for(var i=0; i<question.length; i++){
                 user_ansver.push(temp2);
             }
 
-          /*  var temp3 = $("input[id='inputLogin']");
+
+          var temp3 = $("input[id='inputLogin']");
             for(var i =0; i < temp3.length; i++){
-                var temp2= {};
-                temp2.Id_Question = temp1[i].attributes[0].value;
-                temp2.ID_Answer = temp1[i].attributes[1].value;
-                temp2.Text = temp1[i].value;
-                user_ansver.push(temp2);
-            }*/
-        console.log(JSON.stringify(user_ansver));
-        console.log(App.var.id_test);
+                var temp= {};
+                temp.Id_Question = Number(temp3[i].attributes.id_q.value);
+                temp.Text = temp3[i].value;
+                console.log(temp);
+                user_ansver_with.push(temp);
+            }
+            console.log(JSON.stringify(user_ansver));
+            console.log(JSON.stringify(user_ansver_with));
+             console.log(App.var.id_test);
             $.ajax({
                 url: '/test_check_qestion/?Id_Test='+App.var.id_test+'&Answer_user='+JSON.stringify(user_ansver)+'',
                 type: 'get',
@@ -138,6 +141,13 @@ for(var i=0; i<question.length; i++){
                     App.noty('danger', "Не верных ответов "+ data.countWrong+"");
                     setTimeout("window.location.replace(\"http://localhost:4080\");", 4000);
                 },
+                error: function() {
+                    console.log('danger Ошибка при отправке данных на API!');
+                }
+            });
+            $.ajax({
+                url: '/test_check_qestion_whith/?Id_Test='+App.var.id_test+'&Answer_user='+JSON.stringify(user_ansver_with)+'',
+                type: 'get',
                 error: function() {
                     console.log('danger Ошибка при отправке данных на API!');
                 }
