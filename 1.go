@@ -113,7 +113,7 @@ func (s *server) makeVagrantConf(login string) error {
 		os.Mkdir(config.PathToConfVm+string(usr.Login)+"/"+usr.Login+"/", 0777)
 	}
 	file, err := os.Create(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile")
-	log.Println(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile")
+
 	defer file.Close()
 	templates.ExecuteTemplate(file, "VagrantConfSample.txt", generatedVm)
 
@@ -126,10 +126,13 @@ func (s *server) makeBat(login string) error {
 	text := "vagrant up"
 	file, err := os.Create(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile.bat")
 	file.WriteString(text)
+	text2 := "vagrant halt"
+	file2, err := os.Create(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagranthalt.bat")
+	file2.WriteString(text2)
 	defer file.Close()
+	defer file2.Close()
 	return err
 }
-
 func (s *server) executeVagrant(path string) error {
 	log.Println(path)
 	vagrant := exec.Command(path + "Vagrantfile.bat")
@@ -137,10 +140,15 @@ func (s *server) executeVagrant(path string) error {
 	err := vagrant.Run()
 	return err
 }
+func (s *server) executeVagrantHalt(path string) error {
+	vagrant := exec.Command(path + "Vagranthalt.bat")
+	vagrant.Dir = path
+	err := vagrant.Run()
+	return err
+}
 
 func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request) {
 	var login = r.FormValue("user")
-	log.Println()
 	err := s.makeVagrantConf(login)
 	s.executeVagrant(config.PathToConfVm + login + "/" + login + "/")
 	if err != nil {
@@ -153,6 +161,11 @@ func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
+}
+
+func (s *server) StopdVds(w http.ResponseWriter, r *http.Request) {
+	var login = r.FormValue("user")
+	s.executeVagrantHalt(config.PathToConfVm + login + "/" + login + "/")
 }
 
 func (s *server) usersIndex(w http.ResponseWriter, r *http.Request) { //игформация о пользователе
@@ -277,7 +290,7 @@ func (s *server) test_check_qestion_whith(w http.ResponseWriter, r *http.Request
 
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/", 0777)
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
-	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_"+id_file+"_with.json")
+	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_" + id_file + "_with.json")
 	file.Write(user_answer)
 	file.Close()
 }
@@ -334,7 +347,7 @@ func (s *server) test_check_qestion(w http.ResponseWriter, r *http.Request) { //
 
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/", 0777)
 	os.Mkdir(config.PathTestResult+"user_"+id_user+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
-	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_"+id_file+"_without.json")
+	file, err := os.Create(config.PathTestResult + "user_" + id_user + "/id_test_" + r.FormValue("Id_Test") + "/answer_" + id_file + "_without.json")
 
 	file.Write(user_answer)
 	file.Close()
@@ -428,6 +441,7 @@ func main() {
 	http.HandleFunc("/login/", s.login)
 
 	http.HandleFunc("/start_vds/", s.CreatedVds)
+	http.HandleFunc("/stop_vds/", s.StopdVds)
 	http.HandleFunc("/", s.secret_test)
 	http.ListenAndServe(":4080", nil)
 }
