@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
+
 var (
 	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
 	key   = []byte(config.Key)
@@ -82,6 +84,10 @@ func loadConfig() error {
 	}
 	return json.Unmarshal(jsonData, &config)
 }
+func ByteToBase64(value []byte) string {
+	return base64.StdEncoding.EncodeToString(value)
+}
+
 func (s *server) getUserFromDbByLogin(login string) (User, error) {
 	var users User
 	err := s.Db.Get(&users, "SELECT * FROM users WHERE users.login= $1", login)
@@ -354,12 +360,10 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 	if r.Method == "GET" {
 		fmt.Fprint(w, templates.LoginPage())
 	}
-
 	if r.Method == "POST" {
-		log.Print(r)
-		log.Print(r.FormValue("login"))
+		h := ByteToBase64([]byte(r.FormValue("password")))
 		var user User
-		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", r.FormValue("password"), r.FormValue("login")); err != nil {
+		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", string(h), r.FormValue("login")); err != nil {
 			log.Print(err)
 			return
 		}
@@ -395,8 +399,7 @@ func main() {
 
 	if err := s.Db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
-	}
-	log.Print("количество пользователей", id)
+	}	
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
