@@ -26,9 +26,10 @@ var (
 	store = sessions.NewCookieStore(key)
 )
 var config struct {
-	DbLogin        string `json:"dbLogin"`
+	DbLogin        string `json:"dbUser"`
 	DbHost         string `json:"dbHost"`
-	DbDb           string `json:"dbDb"`
+	DbName         string `json:"dbDb"`
+	DbPassword     string `json:"dbPassword"`
 	PathToConfVm   string `json:"PathToConfVm"`
 	PathTestResult string `json:"PathTestResult"`
 	CookieName     string `json:"CookieName"`
@@ -392,15 +393,15 @@ func main() {
 	}
 	log.Println("Config loaded from", *configFile)
 	var id int
-	var dbconnect = "postgresql://" + config.DbLogin + "@" + config.DbHost + ":26257/" + config.DbDb + "?sslmode=disable"
 
+	var dbconnect = "postgresql://" + config.DbLogin + ":" +config.DbPassword+"@" + config.DbHost + ":26257/" + config.DbName + "?sslmode=disable"
+	log.Println(dbconnect)
 	s := server{Db: sqlx.MustConnect("postgres", dbconnect),}
 	defer s.Db.Close()
 
 	if err := s.Db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
-	}
-	log.Print("количество пользователей", id)
+	}	
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
