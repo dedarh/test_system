@@ -256,7 +256,7 @@ func (s *server) testCheckQestionWhith(w http.ResponseWriter, r *http.Request) {
 	var Answer_user_json []TestQuestionAnswer
 	var idUser = strconv.Itoa(session.Values["id"].(int))
 	var idFile = ""
-	if r.Method != "GET" {
+	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
@@ -282,7 +282,7 @@ func (s *server) testCheckQestion(w http.ResponseWriter, r *http.Request) { //п
 	var question_answer_correct []TestQuestionAnswer
 	var Answer_user_json []TestQuestionAnswer
 	var idFile = ""
-	if r.Method != "GET" {
+	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
@@ -399,7 +399,8 @@ func main() {
 
 	if err := s.Db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
-	}	
+	}
+	log.Print("количество пользователей", id)
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -408,14 +409,14 @@ func main() {
 	http.HandleFunc("/users/show/", s.usersShow)
 	http.HandleFunc("/get_test/", s.testIndex)
 	http.HandleFunc("/testStart/", s.testStart)
-	http.HandleFunc("/test_check_qestion/", s.testCheckQestion)
-	http.HandleFunc("/test_check_qestion_whith/", s.testCheckQestionWhith)
+	http.HandleFunc("/testCheckQuestion/", s.testCheckQestion)
+	http.HandleFunc("/testCheckQuestionWhith/", s.testCheckQestionWhith)
 
 	http.HandleFunc("/logout/", s.logout)
 	http.HandleFunc("/login/", s.login)
 
-	http.HandleFunc("/start_vds/", s.createdVds)
-	http.HandleFunc("/stop_vds/", s.stopdVds)
+	http.HandleFunc("/startVds/", s.createdVds)
+	http.HandleFunc("/stopVds/", s.stopdVds)
 	http.HandleFunc("/", s.index)
 	http.ListenAndServe(":4080", nil)
 }
