@@ -1,7 +1,8 @@
 package main
 
 import (
-	"encoding/base64"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -85,16 +86,12 @@ func loadConfig() error {
 	}
 	return json.Unmarshal(jsonData, &config)
 }
-func ByteToBase64(value []byte) string {
-	return base64.StdEncoding.EncodeToString(value)
-}
-
 func (s *server) getUserFromDbByLogin(login string) (User, error) {
 	var users User
 	err := s.Db.Get(&users, "SELECT * FROM users WHERE users.login= $1", login)
 	return users, err
 }
-func (s *server) makeVagrantConf(login string) error {
+func (s *server) MakeVagrantConf(login string) error {
 	usr, err := s.getUserFromDbByLogin(login)
 	if err != nil {
 		return err
@@ -115,13 +112,13 @@ func (s *server) makeVagrantConf(login string) error {
 	defer file.Close()
 	templates.ExecuteTemplate(file, "VagrantConfSample.txt", generatedVm)
 
-	errFile := s.makeBat(login)
+	errFile := s.MakeBat(login)
 	if errFile != nil {
 		log.Println(err)
 	}
 	return err
 }
-func (s *server) makeBat(login string) error {
+func (s *server) MakeBat(login string) error {
 	usr, err := s.getUserFromDbByLogin(login)
 	text := "vagrant up"
 	file, err := os.Create(config.PathToConfVm + string(usr.Login) + "/" + usr.Login + "/Vagrantfile.bat")
@@ -133,23 +130,23 @@ func (s *server) makeBat(login string) error {
 	defer file2.Close()
 	return err
 }
-func (s *server) executeVagrant(path string) error {
+func (s *server) ExecuteVagrant(path string) error {
 	log.Println(path)
 	vagrant := exec.Command(path + "Vagrantfile.bat")
 	vagrant.Dir = path
 	err := vagrant.Run()
 	return err
 }
-func (s *server) executeVagrantHalt(path string) error {
+func (s *server) ExecuteVagrantHalt(path string) error {
 	vagrant := exec.Command(path + "Vagranthalt.bat")
 	vagrant.Dir = path
 	err := vagrant.Run()
 	return err
 }
-func (s *server) createdVds(w http.ResponseWriter, r *http.Request) {
+func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request) {
 	var login = r.FormValue("user")
-	err := s.makeVagrantConf(login)
-	s.executeVagrant(config.PathToConfVm + login + "/" + login + "/")
+	err := s.MakeVagrantConf(login)
+	s.ExecuteVagrant(config.PathToConfVm + login + "/" + login + "/")
 	if err != nil {
 		log.Println(err)
 		return
@@ -159,15 +156,15 @@ func (s *server) createdVds(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-func (s *server) stopdVds(w http.ResponseWriter, r *http.Request) {
+func (s *server) StopdVds(w http.ResponseWriter, r *http.Request) {
 	var login = r.FormValue("user")
-	error := s.executeVagrantHalt(config.PathToConfVm + login + "/" + login + "/")
-	if (error != nil) {
+	error := s.ExecuteVagrantHalt(config.PathToConfVm + login + "/" + login + "/")
+	if error != nil {
 		log.Println(error)
 		return
 	}
 }
-func (s *server) usersIndex(w http.ResponseWriter, r *http.Request) { //игформация о пользователе
+func (s *server) UsersIndex(w http.ResponseWriter, r *http.Request) { //игформация о пользователе
 	var users []User
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
@@ -180,15 +177,15 @@ func (s *server) usersIndex(w http.ResponseWriter, r *http.Request) { //игфо
 	}
 
 	for _, u := range users {
-		answer_user, err := json.Marshal(u) //govnocode
+		answerUser, err := json.Marshal(u) //govnocode
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		fmt.Fprintf(w, string(answer_user))
+		fmt.Fprintf(w, string(answerUser))
 	}
 }
-func (s *server) usersShow(w http.ResponseWriter, r *http.Request) { //игформация об определенном пользователе
+func (s *server) UsersShow(w http.ResponseWriter, r *http.Request) { //игформация об определенном пользователе
 	var user []User
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
@@ -200,14 +197,14 @@ func (s *server) usersShow(w http.ResponseWriter, r *http.Request) { //игфо�
 		return
 	}
 
-	answer_user, err := json.Marshal(user[0]) //govnocode
+	answerUser, err := json.Marshal(user[0]) //govnocode
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answer_user))
+	fmt.Fprintf(w, string(answerUser))
 }
-func (s *server) testIndex(w http.ResponseWriter, r *http.Request) { //все тесты
+func (s *server) TestIndex(w http.ResponseWriter, r *http.Request) { //все тесты
 	var test []Test
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
@@ -224,83 +221,82 @@ func (s *server) testIndex(w http.ResponseWriter, r *http.Request) { //все т
 	}
 	fmt.Fprintf(w, string(answer_test))
 }
-func (s *server) testStart(w http.ResponseWriter, r *http.Request) { //создание теста и отправка его пользователю
+func (s *server) TestStart(w http.ResponseWriter, r *http.Request) { //создание теста и отправка его пользователю
 	if r.Method == "GET" {
 		id := r.FormValue("id")
 		fmt.Fprint(w, templates.TestsPageView(id))
 	}
 	if r.Method == "POST" {
-		var testQuestion []TestQuestion
+		var TestQuestion []TestQuestion
 		id := r.FormValue("id") //id теста
-		err := s.Db.Select(&testQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
+		err := s.Db.Select(&TestQuestion, `SELECT q.question_name,t_q.i_question, q.type FROM "test_question" t_q JOIN "question" q ON t_q.i_question = q.i_question  WHERE t_q.i_test = $1 ORDER BY q.i_question DESC`, id)
 		if err != nil {
 			http.Error(w, http.StatusText(500), 500)
 			fmt.Println(err)
 			return
 		}
-		for index, e := range testQuestion {
+		for index, e := range TestQuestion {
 			var tqa []TestQuestionAnswer
 			s.Db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", e.Id_Question)
-			testQuestion[index].Answer = tqa
+			TestQuestion[index].Answer = tqa
 		}
-		answer_test, err := json.Marshal(testQuestion)
+		answerTest, err := json.Marshal(TestQuestion)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		fmt.Fprintf(w, string(answer_test))
+		fmt.Fprintf(w, string(answerTest))
 	}
 
 }
-func (s *server) testCheckQestionWhith(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
+func (s *server) TestCheckQuestionWith(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
 	session, _ := store.Get(r, config.CookieName)
-	var Answer_user_json []TestQuestionAnswer
+	var AnswerUserJson []TestQuestionAnswer
 	var idUser = strconv.Itoa(session.Values["id"].(int))
-	var idFile = ""
+	var IdFile = ""
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
-	user_answer := []byte(r.FormValue("Answer_user"))
-	err := json.Unmarshal(user_answer, &Answer_user_json)
+	userAnswer := []byte(r.FormValue("Answer_user"))
+	err := json.Unmarshal(userAnswer, &AnswerUserJson)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	if err := s.Db.Get(&idFile, "SELECT ifnull(COUNT(id)+1, 0) FROM user_answer"); err != nil {
+	if err := s.Db.Get(&IdFile, "SELECT ifnull(COUNT(id)+1, 0) FROM user_answer"); err != nil {
 		log.Fatal(err)
 	}
 	os.Mkdir(config.PathTestResult+"user_"+idUser+"/", 0777)
 	os.Mkdir(config.PathTestResult+"user_"+idUser+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
-	file, err := os.Create(config.PathTestResult + "user_" + idUser + "/id_test_" + r.FormValue("Id_Test") + "/answer_" + idFile + "_with.json")
-	file.Write(user_answer)
+	file, err := os.Create(config.PathTestResult + "user_" + idUser + "/id_test_" + r.FormValue("Id_Test") + "/answer_" + IdFile + "_with.json")
+	file.Write(userAnswer)
 	file.Close()
 }
-func (s *server) testCheckQestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
+func (s *server) TestCheckQuestion(w http.ResponseWriter, r *http.Request) { //проверка верного ответа на вопрос  http://localhost:4080/test_check_qestion/?Id_Test=1&Answer_user=[{"Id_Question":1,"ID_Answer":1,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":2,"Text":"test%20text"},{"Id_Question":1,"ID_Answer":3,"Text":"test%20text"},{"Id_Question":2,"ID_Answer":5,"Text":"%20"}]
 	session, _ := store.Get(r, config.CookieName)
-	var countCorrect = 0;
-	var countWrong = 0;
-	var question_answer_correct []TestQuestionAnswer
-	var Answer_user_json []TestQuestionAnswer
-	var idFile = ""
+	var countCorrect = 0
+	var countWrong = 0
+	var QuestionAnswerCorrect []TestQuestionAnswer
+	var AnswerUserJson []TestQuestionAnswer
+	var IdFile = ""
 	if r.Method != "POST" {
 		http.Error(w, http.StatusText(405), 405)
 		return
 	}
-	user_answer := []byte(r.FormValue("Answer_user"))
-	err := json.Unmarshal(user_answer, &Answer_user_json)
+	userAnswer := []byte(r.FormValue("Answer_user"))
+	err := json.Unmarshal(userAnswer, &AnswerUserJson)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-	for index, e := range Answer_user_json {
-		if err := s.Db.Select(&question_answer_correct, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, e.Id_Question, e.ID_Answer); err != nil {
+	for index, e := range AnswerUserJson {
+		if err := s.Db.Select(&QuestionAnswerCorrect, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, e.Id_Question, e.ID_Answer); err != nil {
 			http.Error(w, http.StatusText(500), 500)
 			fmt.Println(err)
 			return
 		}
-		if (question_answer_correct[index].Correct == 1) {
+		if QuestionAnswerCorrect[index].Correct == 1 {
 			//log.Println("верный овтет")
 			countCorrect++
 		} else {
@@ -308,23 +304,6 @@ func (s *server) testCheckQestion(w http.ResponseWriter, r *http.Request) { //п
 			countWrong++
 		}
 	}
-
-	/*	for i := 0; i < len(Answer_user_json); i++ {
-			if err := s.Db.Select(&question_answer_correct, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, Answer_user_json[i].Id_Question, Answer_user_json[i].ID_Answer); err != nil {
-				http.Error(w, http.StatusText(500), 500)
-				fmt.Println(err)
-				return
-			}
-			if (question_answer_correct[i].Correct == 1) {
-				//log.Println("верный овтет")
-				countCorrect++
-			} else {
-				//log.Println("не верный овтет")
-				countWrong++
-			}
-		}*/
-	log.Println("Верных ответов: ", countCorrect)
-	log.Println("Неверных ответов: ", countWrong)
 	var returnObj = map[string]int{"countCorrect": countCorrect, "countWrong": countWrong}
 	returnObjJson, _ := json.Marshal(returnObj)
 	var idUser = strconv.Itoa(session.Values["id"].(int))
@@ -333,19 +312,19 @@ func (s *server) testCheckQestion(w http.ResponseWriter, r *http.Request) { //п
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	if err := s.Db.Get(&idFile, "SELECT ifnull(COUNT(id), 0) FROM user_answer"); err != nil {
+	if err := s.Db.Get(&IdFile, "SELECT ifnull(COUNT(id), 0) FROM user_answer"); err != nil {
 		log.Fatal(err)
 	}
 
 	os.Mkdir(config.PathTestResult+"user_"+idUser+"/", 0777)
 	os.Mkdir(config.PathTestResult+"user_"+idUser+"/id_test_"+r.FormValue("Id_Test")+"/", 0777)
-	file, err := os.Create(config.PathTestResult + "user_" + idUser + "/id_test_" + r.FormValue("Id_Test") + "/answer_" + idFile + "_without.json")
+	file, err := os.Create(config.PathTestResult + "user_" + idUser + "/id_test_" + r.FormValue("Id_Test") + "/answer_" + IdFile + "_without.json")
 
-	file.Write(user_answer)
+	file.Write(userAnswer)
 	file.Close()
 	fmt.Fprintf(w, string(returnObjJson))
 }
-func (s *server) index(w http.ResponseWriter, r *http.Request) {
+func (s *server) Index(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, config.CookieName)
 	// проверка на вторизацию
 	if auth, ok := session.Values["authenticated"].(bool); !ok || !auth {
@@ -362,9 +341,12 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 		fmt.Fprint(w, templates.LoginPage())
 	}
 	if r.Method == "POST" {
-		h := ByteToBase64([]byte(r.FormValue("password")))
+		h := sha256.New()
+		h.Write([]byte(r.FormValue("password")))
+		shaHash := hex.EncodeToString(h.Sum(nil))
+		log.Println(shaHash)
 		var user User
-		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", string(h), r.FormValue("login")); err != nil {
+		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", shaHash, r.FormValue("login")); err != nil {
 			log.Print(err)
 			return
 		}
@@ -394,30 +376,30 @@ func main() {
 	log.Println("Config loaded from", *configFile)
 	var id int
 
-	var dbconnect = "postgresql://" + config.DbLogin + ":" +config.DbPassword+"@" + config.DbHost + ":26257/" + config.DbName + "?sslmode=disable"
+	var dbconnect = "postgresql://" + config.DbLogin + ":" + config.DbPassword + "@" + config.DbHost + ":26257/" + config.DbName + "?sslmode=disable"
 	log.Println(dbconnect)
-	s := server{Db: sqlx.MustConnect("postgres", dbconnect),}
+	s := server{Db: sqlx.MustConnect("postgres", dbconnect)}
 	defer s.Db.Close()
 
 	if err := s.Db.Get(&id, "SELECT count(*) FROM users"); err != nil {
 		log.Fatal(err)
-	}	
+	}
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/users/", s.usersIndex)
-	http.HandleFunc("/users/show/", s.usersShow)
-	http.HandleFunc("/get_test/", s.testIndex)
-	http.HandleFunc("/testStart/", s.testStart)
-	http.HandleFunc("/testCheckQuestion/", s.testCheckQestion)
-	http.HandleFunc("/testCheckQuestionWhith/", s.testCheckQestionWhith)
+	http.HandleFunc("/users/", s.UsersIndex)
+	http.HandleFunc("/users/show/", s.UsersShow)
+	http.HandleFunc("/get_test/", s.TestIndex)
+	http.HandleFunc("/testStart/", s.TestStart)
+	http.HandleFunc("/testCheckQuestion/", s.TestCheckQuestion)
+	http.HandleFunc("/testCheckQuestionWhith/", s.TestCheckQuestionWith)
 
 	http.HandleFunc("/logout/", s.logout)
 	http.HandleFunc("/login/", s.login)
 
-	http.HandleFunc("/startVds/", s.createdVds)
-	http.HandleFunc("/stopVds/", s.stopdVds)
-	http.HandleFunc("/", s.index)
+	http.HandleFunc("/startVds/", s.CreatedVds)
+	http.HandleFunc("/stopVds/", s.StopdVds)
+	http.HandleFunc("/", s.Index)
 	http.ListenAndServe(":4080", nil)
 }
