@@ -215,12 +215,12 @@ func (s *server) TestIndex(w http.ResponseWriter, r *http.Request) { //все т
 		http.Error(w, http.StatusText(500), 500)
 		return
 	}
-	answer_test, err := json.Marshal(test) //govnocode
+	answerTest, err := json.Marshal(test) //govnocode
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answer_test))
+	fmt.Fprintf(w, string(answerTest))
 }
 func (s *server) TestStart(w http.ResponseWriter, r *http.Request) { //создание теста и отправка его пользователю
 	if r.Method == "GET" {
