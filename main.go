@@ -35,7 +35,6 @@ var config struct {
 	PathTestResult string `json:"PathTestResult"`
 	CookieName     string `json:"CookieName"`
 	Key            string `json:"Key"`
-	Salt 		   string `json:"Salt"`
 }
 var db *sqlx.DB
 var configFile = flag.String("config", "conf.json", "Where to read the config from")
@@ -75,7 +74,7 @@ type TestQuestion struct {
 }
 type TestQuestionAnswer struct {
 	IdQuestion int    `db:"i_question"`
-	ID_Answer   int    `db:"i_answer"`
+	IdAnswer   int    `db:"i_answer"`
 	Text        string `db:"text"`
 	Correct     int    `db:"status"`
 }
@@ -292,7 +291,7 @@ func (s *server) TestCheckQuestion(w http.ResponseWriter, r *http.Request) { //�
 		return
 	}
 	for index, e := range AnswerUserJson {
-		if err := s.Db.Select(&QuestionAnswerCorrect, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, e.IdQuestion, e.ID_Answer); err != nil {
+		if err := s.Db.Select(&QuestionAnswerCorrect, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, e.IdQuestion, e.IdAnswer); err != nil {
 			http.Error(w, http.StatusText(500), 500)
 			fmt.Println(err)
 			return
@@ -344,10 +343,7 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 	if r.Method == "POST" {
 		h := sha256.New()
 		h.Write([]byte(r.FormValue("password")))
-		//хэш = sha256(sha256(пароль) + соль)
-		shaHash1 := (hex.EncodeToString(h.Sum(nil)) + config.Salt)
-		h.Write([]byte(shaHash1))
-		shaHash:= hex.EncodeToString(h.Sum(nil))
+		shaHash := hex.EncodeToString(h.Sum(nil))
 		log.Println(shaHash)
 		var user User
 		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", shaHash, r.FormValue("login")); err != nil {
