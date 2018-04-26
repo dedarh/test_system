@@ -35,6 +35,7 @@ var config struct {
 	PathTestResult string `json:"PathTestResult"`
 	CookieName     string `json:"CookieName"`
 	Key            string `json:"Key"`
+	Salt            string `json:"Salt"`
 }
 var db *sqlx.DB
 var configFile = flag.String("config", "conf.json", "Where to read the config from")
@@ -91,6 +92,16 @@ func (s *server) getUserFromDbByLogin(login string) (User, error) {
 	err := s.Db.Get(&users, "SELECT * FROM users WHERE users.login= $1", login)
 	return users, err
 }
+
+func getSha(str string) string {
+	bytes := []byte(str)
+	h:= sha256.New()
+	h.Write(bytes)
+	code:= h.Sum(nil)
+	codeStr := hex.EncodeToString(code)
+	return  codeStr
+}
+
 func (s *server) MakeVagrantConf(login string) error {
 	usr, err := s.getUserFromDbByLogin(login)
 	if err != nil {
@@ -341,9 +352,12 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 		fmt.Fprint(w, templates.LoginPage())
 	}
 	if r.Method == "POST" {
-		h := sha256.New()
-		h.Write([]byte(r.FormValue("password")))
-		shaHash := hex.EncodeToString(h.Sum(nil))
+
+		//(sha256sha256(password + salt))
+
+		sha:= getSha(r.FormValue("password") + config.Salt);
+		shaHash := getSha(sha);
+
 		log.Println(shaHash)
 		var user User
 		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", shaHash, r.FormValue("login")); err != nil {
