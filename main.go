@@ -35,6 +35,7 @@ var config struct {
 	PathTestResult string `json:"PathTestResult"`
 	CookieName     string `json:"CookieName"`
 	Key            string `json:"Key"`
+	Salt 		   string `json:"Salt"`
 }
 var db *sqlx.DB
 var configFile = flag.String("config", "conf.json", "Where to read the config from")
@@ -343,7 +344,10 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 	if r.Method == "POST" {
 		h := sha256.New()
 		h.Write([]byte(r.FormValue("password")))
-		shaHash := hex.EncodeToString(h.Sum(nil))
+		//хэш = sha256(sha256(пароль) + соль)
+		shaHash1 := (hex.EncodeToString(h.Sum(nil)) + config.Salt)
+		h.Write([]byte(shaHash1))
+		shaHash:= hex.EncodeToString(h.Sum(nil))
 		log.Println(shaHash)
 		var user User
 		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", shaHash, r.FormValue("login")); err != nil {
@@ -390,7 +394,7 @@ func main() {
 
 	http.HandleFunc("/users/", s.UsersIndex)
 	http.HandleFunc("/users/show/", s.UsersShow)
-	http.HandleFunc("/get_test/", s.TestIndex)
+	http.HandleFunc("/getTest/", s.TestIndex)
 	http.HandleFunc("/testStart/", s.TestStart)
 	http.HandleFunc("/testCheckQuestion/", s.TestCheckQuestion)
 	http.HandleFunc("/testCheckQuestionWhith/", s.TestCheckQuestionWith)
