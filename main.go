@@ -68,13 +68,13 @@ type Test struct {
 	Name string `db:"name"`
 }
 type TestQuestion struct {
-	Id_Question string `db:"i_question"`
+	IdQuestion string `db:"i_question"`
 	Text        string `db:"question_name"`
 	Type        string `db:"type"`
 	Answer      []TestQuestionAnswer
 }
 type TestQuestionAnswer struct {
-	Id_Question int    `db:"i_question"`
+	IdQuestion int    `db:"i_question"`
 	ID_Answer   int    `db:"i_answer"`
 	Text        string `db:"text"`
 	Correct     int    `db:"status"`
@@ -238,7 +238,7 @@ func (s *server) TestStart(w http.ResponseWriter, r *http.Request) { //созд�
 		}
 		for index, e := range TestQuestion {
 			var tqa []TestQuestionAnswer
-			s.Db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", e.Id_Question)
+			s.Db.Select(&tqa, "SELECT i_question, i_answer, text FROM answer WHERE i_question = $1", e.IdQuestion)
 			TestQuestion[index].Answer = tqa
 		}
 		answerTest, err := json.Marshal(TestQuestion)
@@ -292,7 +292,7 @@ func (s *server) TestCheckQuestion(w http.ResponseWriter, r *http.Request) { //�
 		return
 	}
 	for index, e := range AnswerUserJson {
-		if err := s.Db.Select(&QuestionAnswerCorrect, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, e.Id_Question, e.ID_Answer); err != nil {
+		if err := s.Db.Select(&QuestionAnswerCorrect, `SELECT i_question, i_answer, text, status FROM answer WHERE i_question = $1 AND i_answer = $2`, e.IdQuestion, e.ID_Answer); err != nil {
 			http.Error(w, http.StatusText(500), 500)
 			fmt.Println(err)
 			return
