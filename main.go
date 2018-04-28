@@ -86,10 +86,9 @@ func loadConfig() error {
 	store = sessions.NewCookieStore([]byte(config.Key))
 	return json.Unmarshal(jsonData, &config)
 }
-func (s *server) getUserFromDbByLogin(login string) (User, error) {
-	var users User
-	err := s.Db.Get(&users, "SELECT * FROM users WHERE users.login= $1", login)
-	return users, err
+func (s *server) getUserFromDbByLogin(login string) (user User, err error) {
+	err = s.Db.Get(&user, "SELECT * FROM users WHERE users.login= $1", login)
+	return
 }
 
 func getSha(str string) string {
