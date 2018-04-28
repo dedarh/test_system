@@ -160,11 +160,12 @@ func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	err = s.ExecuteVagrant(config.PathToConfVm + r.FormValue("user") + "/" + r.FormValue("user") + "/")
-	if err != nil {
+
+	if err = s.ExecuteVagrant(config.PathToConfVm + r.FormValue("user") + "/" + r.FormValue("user") + "/"); err != nil {
 		log.Println(err)
 		return
 	}
+
 	if _, err := s.Db.Exec("INSERT INTO suggestions (id, login, state, status) VALUES ((SELECT ifnull(max(id), 0)+1 FROM suggestions),'" + r.FormValue("user") + "', 0,0)"); err != nil {
 		log.Print(errors.New("Ошибка добавление в базу"))
 		return
@@ -188,17 +189,15 @@ func (s *server) UsersIndex(w http.ResponseWriter, r *http.Request) { //игфо
 		return
 	}
 
-	for _, u := range users {
-		answerUser, err := json.Marshal(u) //govnocode
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		fmt.Fprintf(w, string(answerUser))
+	answerUser, err := json.Marshal(users)
+	if err != nil {
+		log.Println(err)
+		return
 	}
+	fmt.Fprint(w, string(answerUser))
 }
 func (s *server) UsersShow(w http.ResponseWriter, r *http.Request) { //игформация об определенном пользователе
-	var user []User
+	var user User
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(405), 405)
 		return
@@ -209,12 +208,12 @@ func (s *server) UsersShow(w http.ResponseWriter, r *http.Request) { //игфо�
 		return
 	}
 
-	answerUser, err := json.Marshal(user[0]) //govnocode
+	answerUser, err := json.Marshal(user)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	fmt.Fprintf(w, string(answerUser))
+	fmt.Fprint(w, string(answerUser))
 }
 func (s *server) TestIndex(w http.ResponseWriter, r *http.Request) { //все тесты
 	var test []Test
@@ -389,9 +388,8 @@ func main() {
 	}
 	log.Println("Config loaded from", *configFile)
 
-	s := server{Db: sqlx.MustConnect("postgres", "postgresql://" + config.DbLogin + ":" + config.DbPassword + "@" + config.DbHost + ":26257/" + config.DbName + "?sslmode=disable")}
+	s := server{Db: sqlx.MustConnect("postgres", "postgresql://"+config.DbLogin+":"+config.DbPassword+"@"+config.DbHost+":26257/"+config.DbName+"?sslmode=disable")}
 	defer s.Db.Close()
-
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
