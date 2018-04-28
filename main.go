@@ -14,11 +14,11 @@ import (
 	"strconv"
 	"text/template"
 
-	"./templates"
-	//"github.com/dedarh/test_system/templates"
+	"github.com/dedarh/test_system/templates"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -35,9 +35,9 @@ var config struct {
 	PathTestResult string `json:"PathTestResult"`
 	CookieName     string `json:"CookieName"`
 	Key            string `json:"Key"`
-	Salt            string `json:"Salt"`
+	Salt           string `json:"Salt"`
 }
-var db *sqlx.DB
+
 var configFile = flag.String("config", "conf.json", "Where to read the config from")
 
 type server struct {
@@ -69,15 +69,15 @@ type Test struct {
 }
 type TestQuestion struct {
 	IdQuestion string `db:"i_question"`
-	Text        string `db:"question_name"`
-	Type        string `db:"type"`
-	Answer      []TestQuestionAnswer
+	Text       string `db:"question_name"`
+	Type       string `db:"type"`
+	Answer     []TestQuestionAnswer
 }
 type TestQuestionAnswer struct {
 	IdQuestion int    `db:"i_question"`
 	IdAnswer   int    `db:"i_answer"`
-	Text        string `db:"text"`
-	Correct     int    `db:"status"`
+	Text       string `db:"text"`
+	Correct    int    `db:"status"`
 }
 
 func loadConfig() error {
@@ -95,11 +95,11 @@ func (s *server) getUserFromDbByLogin(login string) (User, error) {
 
 func getSha(str string) string {
 	bytes := []byte(str)
-	h:= sha256.New()
+	h := sha256.New()
 	h.Write(bytes)
-	code:= h.Sum(nil)
+	code := h.Sum(nil)
 	codeStr := hex.EncodeToString(code)
-	return  codeStr
+	return codeStr
 }
 
 func (s *server) MakeVagrantConf(login string) error {
@@ -155,23 +155,24 @@ func (s *server) ExecuteVagrantHalt(path string) error {
 	return err
 }
 func (s *server) CreatedVds(w http.ResponseWriter, r *http.Request) {
-	var login = r.FormValue("user")
-	err := s.MakeVagrantConf(login)
-	s.ExecuteVagrant(config.PathToConfVm + login + "/" + login + "/")
+	err := s.MakeVagrantConf(r.FormValue("user"))
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	if _, err := s.Db.Exec("INSERT INTO suggestions (id, login, state, status) VALUES ((SELECT ifnull(max(id), 0)+1 FROM suggestions),'" + login + "', 0,0)"); err != nil {
-		log.Print("Ошибка добавление в базу")
+	err = s.ExecuteVagrant(config.PathToConfVm + r.FormValue("user") + "/" + r.FormValue("user") + "/")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if _, err := s.Db.Exec("INSERT INTO suggestions (id, login, state, status) VALUES ((SELECT ifnull(max(id), 0)+1 FROM suggestions),'" + r.FormValue("user") + "', 0,0)"); err != nil {
+		log.Print(errors.New("Ошибка добавление в базу"))
 		return
 	}
 }
 func (s *server) StopdVds(w http.ResponseWriter, r *http.Request) {
-	var login = r.FormValue("user")
-	error := s.ExecuteVagrantHalt(config.PathToConfVm + login + "/" + login + "/")
-	if error != nil {
-		log.Println(error)
+	if err := s.ExecuteVagrantHalt(config.PathToConfVm + r.FormValue("user") + "/" + r.FormValue("user") + "/"); err != nil {
+		log.Println(err)
 		return
 	}
 }
@@ -355,9 +356,8 @@ func (s *server) login(w http.ResponseWriter, r *http.Request) { //http://localh
 
 		//(sha256sha256(password + salt))
 
-		sha:= getSha(r.FormValue("password") + config.Salt);
-		shaHash := getSha(sha);
-
+		sha := getSha(r.FormValue("password"));
+		shaHash := getSha(sha + config.Salt);
 		log.Println(shaHash)
 		var user User
 		if err := s.Db.Get(&user, "SELECT * FROM users WHERE password  = $1 and login = $2 LIMIT 1", shaHash, r.FormValue("login")); err != nil {
@@ -385,19 +385,13 @@ func (s *server) logout(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	if err := loadConfig(); err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	log.Println("Config loaded from", *configFile)
-	var id int
 
-	var dbconnect = "postgresql://" + config.DbLogin + ":" + config.DbPassword + "@" + config.DbHost + ":26257/" + config.DbName + "?sslmode=disable"
-	log.Println(dbconnect)
-	s := server{Db: sqlx.MustConnect("postgres", dbconnect)}
+	s := server{Db: sqlx.MustConnect("postgres", "postgresql://" + config.DbLogin + ":" + config.DbPassword + "@" + config.DbHost + ":26257/" + config.DbName + "?sslmode=disable")}
 	defer s.Db.Close()
 
-	if err := s.Db.Get(&id, "SELECT count(*) FROM users"); err != nil {
-		log.Fatal(err)
-	}
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -415,5 +409,6 @@ func main() {
 	http.HandleFunc("/startVds/", s.CreatedVds)
 	http.HandleFunc("/stopVds/", s.StopdVds)
 	http.HandleFunc("/", s.Index)
+
 	http.ListenAndServe(":4080", nil)
 }
