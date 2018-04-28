@@ -22,9 +22,7 @@ import (
 )
 
 var (
-	// key must be 16, 24 or 32 bytes long (AES-128, AES-192 or AES-256)
-	key   = []byte(config.Key)
-	store = sessions.NewCookieStore(key)
+	store *sessions.CookieStore
 )
 var config struct {
 	DbLogin        string `json:"dbUser"`
@@ -85,6 +83,7 @@ func loadConfig() error {
 	if err != nil {
 		return err
 	}
+	store = sessions.NewCookieStore([]byte(config.Key))
 	return json.Unmarshal(jsonData, &config)
 }
 func (s *server) getUserFromDbByLogin(login string) (User, error) {
