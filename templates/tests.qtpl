@@ -1,4 +1,10 @@
-{% func TestsPage() %}
+{% code type Test struct {
+   Id   int    `db:"i_test"`
+   Name string `db:"name"`
+ }
+%}
+
+{% func TestsPage(test []Test) %}
 {%= Head("Список тестов") %}
     <div class="navbar navbar-inverse">
         <div class="container-fluid">
@@ -30,34 +36,22 @@
             </tr>
             </thead>
             <tbody>
-            <tr class="info">
-                <td style="padding: 20px;">Id test</td>
-                <td style="padding: 20px;">Name test</td>
-                <td>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-success btn-on-table"><span class="glyphicon glyphicon-play" aria-hidden="true"></span></a>
-                </td>
-            </tr>
-            <tr class="danger">
-                <td style="padding: 20px;">Failed test</td>
-                <td style="padding: 20px;">Descriptions test</td>
-                <td>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
-                </td>
-            </tr>
-            <tr class="success">
-                <td style="padding: 20px;">Completed test</td>
-                <td style="padding: 20px;">Descriptions test</td>
-                <td>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
-                </td>
-            </tr>
+             {% for _, test := range test %}
+                     <tr class="info">
+                             <td style="padding: 20px;">{%v  test.Id %}</td>
+                             <td style="padding: 20px;">{%v  test.Name %}</td>
+                             <td>
+                                 <a href="/testStart/?id={%v  test.Id %}" class="btn btn-success btn-on-table"><span class="glyphicon glyphicon-play" aria-hidden="true"></span></a>
+                             </td>
+                         </tr>
+                {% endfor %}
             </tbody>
         </table>
     </div>
 <div id="black-block"></div>
 <script>
 $(document).ready(function(){
-     App.systems.get_test();
+    // App.systems.get_test();
   });
 
 </script>

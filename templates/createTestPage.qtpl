@@ -1,7 +1,18 @@
+{% code type TestQuestionAdmin struct {
+        	IdQuestion string `db:"i_question"`
+        	Text       string `db:"question_name"`
+        }
+%}
 
+
+
+
+
+
+{% func CreateTestPage(question []TestQuestionAdmin) %}
 <html>
 <head>
-    <title>Результаты теста</title>
+    <title>Создать тест</title>
     <link type="text/css" rel="stylesheet" href="/static/css/bootstrap.min.css">
     <link type="text/css" rel="stylesheet" href="/static/css/ripples.min.css">
     <link type="text/css" rel="stylesheet" href="/static/css/bootstrap-material-design.min.css">
@@ -28,45 +39,66 @@
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     <li><a href="/tests/">New question</a></li>
-                    <li><a href="/tests/">New test</a></li>
+                    <li><a href="/create-test/">New test</a></li>
                     <li><a href="/admin/logout/">Logout</a></li>
                 </ul>
             </div>
         </div>
     </div>
     <div style="width: 80%; margin: 0 auto;min-width: 1320px">
-        <table class="table table-striped table-hover">
-            <thead>
-            <tr>
-                <th>Question</th>
-                <th>Answer</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr class="success">
-                <td style="padding: 20px;">Вопрос 1 </td>
-                <td style="padding: 20px;">Правильный ответ</td>
-            </tr>
-            <tr class="danger">
-                <td style="padding: 20px;">Вопрос 2 </td>
-                <td style="padding: 20px;">Неправильный ответ</td>
-            </tr>
-            <tr class="info">
-                <td style="padding: 20px;">Вопрос 2 </td>
-                <td style="padding: 20px;">Пропущенный ответ</td>
-            </tr>
-            </tbody>
-        </table>
+        <div class="panel panel-info">
+            <div class="panel-heading"> 
+                <h3 class="panel-title">Create test</h3>
+            </div>
+            <div class="panel-body">
+                <form class="form-horizontal form-cont" action="/admin/login/" method="post">
+                    <fieldset>
+                        <div class="form-group">
+                            <label for="inputLogin" class="col-md-2 control-label">Test name</label>
+
+                            <div class="col-md-10">
+                                <input type="login" name="login" class="form-control" id="inputLogin" >
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                         <div class="col-md-10">
+                             {% for _, question := range question %}
+                                <div class="checkbox disabled">
+                                  <label><input type="checkbox" id_q="{%v question.IdQuestion%}">  {%v question.Text%}</label>
+                                </div>
+                             {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                        </div>
+                    </fieldset>
+                </form>
+                <button id="Finish" class="btn btn-primary left">Сохранить тест<div class="ripple-container"></div></button>
+
+            </div>
+        </div>
     </div>
 <div id="black-block"></div>
 <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
 <script src="/static/js/bootstrap.min.js"></script>
 <script src="/static/js/ripples.min.js"></script>
 <script src="/static/js/material.min.js"></script>
-<script src="/static/js/template.js"></script>
+<! --script src="/static/js/template.js"></script -->
 <script src="/static/js/jquery.maskedinput.min.js"></script>
 <script>$.material.init();</script>
 <script src="https://fezvrasta.github.io/snackbarjs/dist/snackbar.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/6.2.0/jquery.nouislider.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/6.2.0/jquery.nouislider.min.js"></script>
+<script src="/static/js/app.js"></script>
+<script>
+    $(document).ready(function(){
+            $('#Finish').click(function(e) {
+                App.systems.create_test();
+            });
+      });
+</script>
 </body>
 </html>
+{% endfunc %}

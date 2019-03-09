@@ -1,0 +1,285 @@
+{% func CreateQuestionPage() %}
+<html>
+
+<head>
+    <title>Создать вопрос</title>
+    <link type="text/css" rel="stylesheet" href="./static/css/bootstrap.min.css">
+    <link type="text/css" rel="stylesheet" href="./static/css/ripples.min.css">
+    <link type="text/css" rel="stylesheet" href="./static/css/bootstrap-material-design.min.css">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+    <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link type="text/css" rel="stylesheet" href="./static/css/template.css">
+</head>
+
+<body>
+    <div class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">Testing system</a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="/tests/">Tests</a></li>
+                    <li><a href="/tests/">Questions</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/tests/">New question</a></li>
+                    <li><a href="/create-test/">New test</a></li>
+                    <li><a href="/admin/logout/">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div style="width: 80%; margin: 0 auto;min-width: 1320px">
+        <div class="btn-group btn-group-justified">
+            <a class="btn btn-success text">Text</a>
+            <a class="btn btn-success checkbox">Checkbox</a>
+            <a class="btn btn-success radio">Radio</a>
+        </div>
+        <div class="panel panel-info text">
+            <div class="panel-heading">
+                <h3 class="panel-title">Create text question</h3>
+            </div>
+            <div class="panel-body">
+                <div class="form-horizontal form-cont">
+                    <fieldset>
+                        <div class="form-group">
+                            <label for="inputLogin" class="col-md-2 control-label">Question</label>
+                            <div class="col-md-10">
+                                <input type="login" name="login" class="form-control" id="text_answer_text">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-md-10 col-md-offset-2">
+                                <button type="submit" class="btn btn-primary left">Save</button>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel panel-info checkbox" style="display: none;">
+            <div class="panel-heading">
+                <h3 class="panel-title">Create checkbox question</h3>
+            </div>
+            <div class="panel-body">
+                <div class="form-horizontal form-cont">
+                    <fieldset>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">Question</label>
+
+                            <div class="col-md-10">
+                                <input type="login" name="login" class="form-control" id="text_answer_checkbox">
+                            </div>
+                        </div>
+
+                        <div class="form-group" >
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"  id="text_answer_checkbox_1_cheack"><span class="checkbox-material"><span class="check"></span></span> Answer 1</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="text_answer_checkbox_1"">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"  id="text_answer_checkbox_2_cheack"><span class="checkbox-material"><span class="check"></span></span> Answer 2</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="text_answer_checkbox_2">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"  id="text_answer_checkbox_3_cheack" ><span class="checkbox-material"><span class="check"></span></span> Answer 3</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="text_answer_checkbox_3">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox" id="text_answer_checkbox_4_cheack"><span class="checkbox-material"><span class="check"></span></span> Answer 4</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="text_answer_checkbox_4">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-md-10 col-md-offset-2">
+                                <button type="submit" class="btn btn-primary left">Save</button>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+
+        <div id="radio" class="panel panel-info checkbox" style="display: none;">
+            <div class="panel-heading">
+                <h3 class="panel-title">Create radio question</h3>
+            </div>
+            <div class="panel-body">
+                <div class="form-horizontal form-cont">
+                    <fieldset>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">Question</label>
+
+                            <div class="col-md-10">
+                                <input type="login" name="login" class="form-control" id="text_answer_radio">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"><span class="checkbox-material"><span class="check"></span></span> Answer 1</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="inputLogin">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"><span class="checkbox-material"><span class="check"></span></span> Answer 2</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="inputLogin">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"><span class="checkbox-material"><span class="check"></span></span> Answer 3</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="inputLogin">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">
+                                <input type="checkbox"><span class="checkbox-material"><span class="check"></span></span> Answer 4</label>
+                            <div class="col-md-10">
+                                <input class="form-control" id="inputLogin">
+                            </div>
+                        </div>
+                         <div class="form-group">
+                                                    <label class="col-md-2 control-label">
+                                                        <input type="checkbox"><span class="checkbox-material"></span> Right 4</label>
+                                                    <div class="col-md-10">
+                                                        <input class="form-control" id="inputLogin">
+                                                    </div>
+                                                </div>
+                        <div class="form-group">
+                            <div class="col-md-10 col-md-offset-2">
+                                <button type="submit" class="btn btn-primary left">Save</button>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div id="black-block"></div>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <script src="./static/js/bootstrap.min.js"></script>
+    <script src="./static/js/ripples.min.js"></script>
+    <script src="./static/js/material.min.js"></script>
+
+    <script src="./static/js/jquery.maskedinput.min.js"></script>
+    <script>
+        $.material.init();
+    </script>
+    <script src="https://fezvrasta.github.io/snackbarjs/dist/snackbar.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/6.2.0/jquery.nouislider.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var type_q = 0;
+            $('.btn.btn-success.text').click(function(e) {
+                $('.panel.panel-info.checkbox').hide();
+                $('#radio').hide();
+                $('.panel.panel-info.text').show();
+                type_q = 0;
+            });
+            $('.btn.btn-success.radio').click(function(e) {
+                $('.panel.panel-info.checkbox').hide();
+                $('.panel.panel-info.text').hide();
+                $('#radio').show();
+                type_q = 2;
+            });
+            $('.btn.btn-success.checkbox').click(function(e) {
+                $('.panel.panel-info.checkbox').show();
+                $('#radio').hide();
+                $('.panel.panel-info.text').hide();
+                type_q = 1;
+            });
+            $('.btn.btn-primary.left').click(function(e) {
+                if (type_q == 0) {
+                    $.ajax({
+                        url: '/create-question?type_q=' + type_q + '&quetion=' + $('#text_answer_text').val() + '',
+                        type: 'post',
+                        success: function(data) {
+                            // App.noty('success', 'Cоздание теста завершена');
+
+                        },
+                        error: function() {
+                            // App.noty('danger', 'Ошибка при отправке данных на API!');
+                        }
+                    });
+
+                }
+                if (type_q == 1) {
+                    var q_status = $(".panel.panel-info.checkbox :checked");
+                    console.log(q_status);
+                    var Answer=[0,0,0,0,0];
+                    for(var i =0; i < q_status.length; i++){
+                        if(q_status[i].id == "text_answer_checkbox_1_cheack")  Answer[1] = 1;
+                        if(q_status[i].id == "text_answer_checkbox_2_cheack")  Answer[2] = 1;
+                        if(q_status[i].id == "text_answer_checkbox_3_cheack")  Answer[3] = 1;
+                        if(q_status[i].id == "text_answer_checkbox_4_cheack")  Answer[4] = 1;
+                    }
+
+                    var str ="";
+                    for(var i=1; i<5; i++){
+                        str += "&answer"+i+"t="+Answer[i];
+
+                    }
+
+                    var answers = "&answer1="+$('#text_answer_checkbox_1').val();
+                        answers+="&answer2="+$('#text_answer_checkbox_2').val();
+                        answers+="&answer3="+$('#text_answer_checkbox_3').val();
+                        answers+="&answer4="+$('#text_answer_checkbox_4').val();
+
+                    $.ajax({
+                        url: '/create-question?type_q=' + type_q + '&quetion=' + $('#text_answer_checkbox').val()+''+str+answers,
+                        type: 'post',
+                        success: function(data) {
+                            // App.noty('success', 'Cоздание теста завершена');
+
+                        },
+                        error: function() {
+                            // App.noty('danger', 'Ошибка при отправке данных на API!');
+                        }
+                    });
+
+                }
+                if (type_q == 2) {
+                    $.ajax({
+                        url: '/create-question?type_q=' + type_q + '&quetion=' + $('#text_answer_radio').val() + '',
+                        type: 'post',
+                        success: function(data) {
+                            // App.noty('success', 'Cоздание теста завершена');
+
+                        },
+                        error: function() {
+                            // App.noty('danger', 'Ошибка при отправке данных на API!');
+                        }
+                    });
+
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>
+{% endfunc %}

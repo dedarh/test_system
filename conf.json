@@ -1,8 +1,12 @@
 {
-  "dbLogin": "root",
   "dbHost":"localhost",
-  "dbDb":"test_systems",
+  "dbDb":"testsystems",
   "dbPort ":"26257",
+  "dbUser":"root",
+  "dbPassword":"Q7gc8rEdS",
   "PathToConfVm": "D:/vagrant_test/",
-  "PathTestResult" : "D:/test_answer/"
+  "PathTestResult" : "D:/test_answer/",
+  "CookieName" : "TestSystem",
+  "Key" : "keyforlogin",
+  "Salt" : "sflprt49fhi2"
 }

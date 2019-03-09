@@ -1,13 +1,31 @@
 
+{% code type TestQuestionAnswer struct {
+	IdQuestion int    `db:"i_question"`
+	IdAnswer   int    `db:"i_answer"`
+	Text       string `db:"text"`
+	Correct    int    `db:"correct"`
+}
+%}
+
+{% code type TestQuestionAnswerWith struct {
+	IdQuestion int    `db:"i_question"`
+	IdAnswer   int    `db:"i_answer"`
+	Text       string `db:"text"`
+	Correct    int    `db:"correct"`
+}
+%}
+
+
+{% func ResultTestAdmin(answer []TestQuestionAnswer) %}
 <html>
 <head>
-    <title>Тесты</title>
+    <title>Результаты теста</title>
     <link type="text/css" rel="stylesheet" href="/static/css/bootstrap.min.css">
     <link type="text/css" rel="stylesheet" href="/static/css/ripples.min.css">
     <link type="text/css" rel="stylesheet" href="/static/css/bootstrap-material-design.min.css">
+    <link type="text/css" rel="stylesheet" href="/static/css/template.css">
     <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
     <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link type="text/css" rel="stylesheet" href="/static/css/template.css">
 </head>
 <body>
     <div class="navbar navbar-inverse">
@@ -19,7 +37,7 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/">Testing system</a>
+                <a class="navbar-brand" href="/admin">Testing system</a>
             </div>
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                 <ul class="nav navbar-nav">
@@ -28,7 +46,7 @@
                 </ul>
                 <ul class="nav navbar-nav navbar-right">
                     <li><a href="/tests/">New question</a></li>
-                    <li><a href="/tests/">New test</a></li>
+                    <li><a href="/create-test/">New test</a></li>
                     <li><a href="/admin/logout/">Logout</a></li>
                 </ul>
             </div>
@@ -38,39 +56,30 @@
         <table class="table table-striped table-hover">
             <thead>
             <tr>
-                <th>Name</th>
-                <th>Date</th>
-                <th>User</th>
+                <th>Question</th>
+                <th>Answer</th>
             </tr>
             </thead>
             <tbody>
-            <tr class="info">
-                <td style="padding: 20px;">stajer1</td>
-                <td style="padding: 20px;"> New test</td>
-                <td style="padding: 20px;">2017-06-01</td>
-                <td>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></a>
-                </td>
-            </tr>
-            <tr class="danger">
-                <td style="padding: 20px;">stajer1</td>
-                <td style="padding: 20px;">Failed test</td>
-                <td style="padding: 20px;">2017-06-01</td>
-                <td>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></a>
-                </td>
-            </tr>
-            <tr class="success">
-                <td style="padding: 20px;">stajer1</td>
-                <td style="padding: 20px;">Completed test</td>
-                <td style="padding: 20px;">2017-06-01</td>
-                <td>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
-                    <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></a>
-                </td>
-            </tr>
+
+
+
+            {% for _, answer := range answer %}
+                  {% if answer.Correct == 1 %}
+                                     <tr class="success">
+                                                    <td style="padding: 20px;">Вопрос {%v answer.IdQuestion %} </td>
+                                                    <td style="padding: 20px;">Правильный ответ</td>
+                                                </tr>
+                                {% endif %}
+                                {% if answer.Correct == 0 %}
+                                                     <tr class="danger">
+                                                                    <td style="padding: 20px;">Вопрос {%v answer.IdQuestion %}</td>
+                                                                    <td style="padding: 20px;">Неправильный ответ</td>
+                                                      </tr>
+                                                {% endif %}
+             {% endfor %}
+
+
             </tbody>
         </table>
     </div>
@@ -86,3 +95,4 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/6.2.0/jquery.nouislider.min.js"></script>
 </body>
 </html>
+{% endfunc %}

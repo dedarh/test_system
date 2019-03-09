@@ -1,0 +1,98 @@
+{% code type TestAdmin struct {
+   Id   int    `db:"id"`
+   IdTest   int    `db:"i_test"`
+   Name string `db:"name"`
+   Firstname  string `db:"firstname"`
+   Lastname   string `db:"lastname"`
+   State      string `db:"state"`
+ }
+%}
+{% func AdminPage(test []TestAdmin) %}
+<html>
+<head>
+    <title>Тесты</title>
+    <link type="text/css" rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link type="text/css" rel="stylesheet" href="/static/css/ripples.min.css">
+    <link type="text/css" rel="stylesheet" href="/static/css/bootstrap-material-design.min.css">
+    <link type="text/css" rel="stylesheet" href="/static/css/template.css">
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+    <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <div class="navbar navbar-inverse">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse"
+                        data-target=".navbar-responsive-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/admin">Testing system</a>
+            </div>
+            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                <ul class="nav navbar-nav">
+                    <li><a href="/tests/">Tests</a></li>
+                    <li><a href="/tests/">Questions</a></li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="/create-question">New question</a></li>
+                    <li><a href="/create-test/">New test</a></li>
+                    <li><a href="/admin/logout/">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div style="width: 80%; margin: 0 auto;min-width: 1320px">
+        <table class="table table-striped table-hover">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Name test</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for _, test := range test %}
+                {% if test.State == "Failed test" %}
+                     <tr class="danger">
+                                    <td style="padding: 20px;">{%v test.Firstname%}  {%v test.Lastname%}</td>
+                                    <td style="padding: 20px;">{%v test.Name %}</td>
+                                    <td style="padding: 20px;">{%v test.State %}</td>
+                                    <td>
+                                        <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
+                                        <a href="/admin/result/test?id={%v test.Id%}" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></a>
+                                    </td>
+                                </tr>
+                {% endif %}
+
+                  {% if test.State == "Completed test" %}
+                   <tr class="success">
+                                  <td style="padding: 20px;">{%v test.Firstname%}  {%v test.Lastname%}</td>
+                                  <td style="padding: 20px;">{%v test.Name %}</td>
+                                  <td style="padding: 20px;">{%v test.State %}</td>
+                                  <td>
+                                      <a href="/admin/checkMemorandum/accept/" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-list" aria-hidden="true"></span></a>
+                                      <a href="/admin/result/test?id={%v test.Id%}" class="btn btn-info btn-on-table"><span class="glyphicon glyphicon-option-horizontal" aria-hidden="true"></span></a>
+                                  </td>
+                              </tr>
+                  {% endif %}
+
+            {% endfor %}
+
+            </tbody>
+        </table>
+    </div>
+<div id="black-block"></div>
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/ripples.min.js"></script>
+<script src="/static/js/material.min.js"></script>
+<script src="/static/js/template.js"></script>
+<script src="/static/js/jquery.maskedinput.min.js"></script>
+<script>$.material.init();</script>
+<script src="https://fezvrasta.github.io/snackbarjs/dist/snackbar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/6.2.0/jquery.nouislider.min.js"></script>
+</body>
+</html>
+{% endfunc %}
